@@ -44,8 +44,7 @@ char shellcode[] =
 
     long tailleSection = strlen(shellcode) + 0 + (sizeof(DWORD)); //notre dword sur lequel nous allons sauter, le veritable entry point.
 
-    printf("Ownz fucking PE par 0vercl0k.\n\n");
-    if(!argv[1])
+        if(!argv[1])
 	{
 	printf(USAGE, argv[0]);
 	return 1;
