@@ -60,7 +60,6 @@ int main(int argc , char* argv[])
 	__in_opt  LPCTSTR lpName
 	);
 	*/
-	//chris :  surement up la size avec la taille du shell code 
 	HANDLE executableMappe = CreateFileMapping(executableHandle , NULL , PAGE_READWRITE , 0  , 0 , NULL) ; 
 
 	/*
@@ -76,7 +75,7 @@ int main(int argc , char* argv[])
 	LPVOID executableEnMemoire = MapViewOfFile(executableMappe , FILE_MAP_ALL_ACCESS , 0 ,  0, 0); 
 
     if (executableHandle == INVALID_HANDLE_VALUE || executableMappe == INVALID_HANDLE_VALUE || executableEnMemoire == INVALID_HANDLE_VALUE)
-	    return 1;
+	return 1;
 
     infosExecutable = (PIMAGE_DOS_HEADER)executableEnMemoire;
 
