@@ -129,7 +129,7 @@ char shellcode[] =
 
 
     PIMAGE_SECTION_HEADER notreSection = (PIMAGE_SECTION_HEADER)(infosSection);
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculerla vsize et voffset.
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculer la vsize et voffset.
 
     (*pointeurNombreDeSection)++;
     (*pointeurSizeOfImage) += tailleSection;
