@@ -1,6 +1,6 @@
 @echo off
-copy /Y ..\ToInfect\toInfect\a.exe .\toInfect.exe
+copy /Y ..\victim\victim.exe victim.exe
 gcc peInfect.c -o infector.exe
-infector.exe toInfect.exe
-toInfect.exe
+infector.exe victim.exe > debug.txt
+victim.exe
 
