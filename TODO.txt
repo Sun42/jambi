@@ -1,0 +1,1 @@
+n'ouvrire qu'une seul fois le fichier > OPEN_ALWAYS en arg
