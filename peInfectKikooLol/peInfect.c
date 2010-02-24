@@ -148,7 +148,13 @@ printf("Entete precedente : %p \r\n", *infosSection);
 
     strcpy((char*)notreSection->Name,nomSection);
     notreSection->Misc.VirtualSize = AligneSur(sectionAlignment,tailleSection);
+    printf("ici-------------\r\n\r\n");
+    printf("newSection->Misc.VirtualSize %p \r\n", notreSection->Misc.VirtualSize);
+    printf("infosSection->Misc.VirtualAdress %p \r\n", infosSection->VirtualAddress);
+    printf("sectionAlignment %x \r\n", sectionAlignment);
     notreSection->VirtualAddress = AligneSur(sectionAlignment,(infosSection->VirtualAddress + infosSection->Misc.VirtualSize));
+    printf("newSection->Misc.VirtualAdress %p \r\n", notreSection->VirtualAddress);
+
     notreSection->SizeOfRawData = AligneSur(fileAlignment,tailleSection);
     notreSection->PointerToRawData = AligneSur(fileAlignment,(infosSection->SizeOfRawData + infosSection->PointerToRawData));
     notreSection->PointerToRelocations = 0;
@@ -162,8 +168,10 @@ printf("Entete precedente : %p \r\n", *infosSection);
     long fakeEP = notreSection->VirtualAddress;
     long pointerToRaw = notreSection->PointerToRawData;
     DWORD decallage = sauvegardeEntryPoint - ( (fakeEP + tailleSection) );
+   printf("Decalage %i -- %p = sauvegarde entrypoint %p - (fakeEp %p + tailleSection %i) \r\n", decallage, decallage, sauvegardeEntryPoint, fakeEP, tailleSection);
     DWORD taille;
     long differenceDeTaille = (AligneSur(fileAlignment,tailleSection) - tailleSection);
+printf("Difference de taille:  %i \r\n", differenceDeTaille);
 
     UnmapViewOfFile(executableEnMemoire);
     CloseHandle(executableHandle);
