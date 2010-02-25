@@ -162,7 +162,7 @@ printf("Entete precedente : %p \r\n", *infosSection);
     long fakeEP = notreSection->VirtualAddress;
     long pointerToRaw = notreSection->PointerToRawData;
     DWORD decallage = sauvegardeEntryPoint - ( (fakeEP + tailleSection) );
-   printf("Decalage %i -- %p = sauvegarde entrypoint %p - (fakeEp %p + tailleSection %i) \r\n", decallage, decallage, sauvegardeEntryPoint, fakeEP, tailleSection);
+   printf("Decalage %i -- %x = sauvegarde entrypoint %p - (fakeEp %p + tailleSection %x) \r\n", decallage, decallage, sauvegardeEntryPoint, fakeEP, tailleSection);
     DWORD taille;
     long differenceDeTaille = (AligneSur(fileAlignment,tailleSection) - tailleSection);
 printf("Difference de taille:  %i \r\n", differenceDeTaille);

