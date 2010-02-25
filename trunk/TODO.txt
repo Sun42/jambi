@@ -1,1 +1,3 @@
-n'ouvrire qu'une seul fois le fichier > OPEN_ALWAYS en arg
+4.non-masm version delete key words invoke, ; replace offset by addr when possible or lea, delete keyword proc
+6.un seul appel a CreateFile
+5.dynamic loadlib shellcode
